@@ -8,10 +8,7 @@ This piece of work is an implementation of Raft protocol. The reference paper ca
 * All Client communication is handled by the Leader. The leader takes consensus from the majority of server replicas before committing the changes.
 * If a client tries to communicate with a non-leader server then it gets "ERR_REDIRECT host port" message where host=ip-address/name of Leader and port=port# of leader.
 
-# Team Members
-Saurabh Hote 13305R008
-
-Swapnil Gusani 133050001
+# Team Member(Individual)
 
 Ramesh Gaikwad 13305R011
 
