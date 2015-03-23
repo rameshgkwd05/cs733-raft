@@ -3,15 +3,15 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
-	raft "github.com/swapniel99/cs733-raft/raft"
+	//"encoding/json"
+	//types "github.com/rameshgkwd05/cs733-raft/types"
 	"io"
-	"io/ioutil"
+	//"io/ioutil"
 	"log"
 	"net"
-	"os"
+	//"os"
 	"os/exec"
-	"runtime"
+	//"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -20,57 +20,59 @@ import (
 )
 
 var cmdObjects = make([]*exec.Cmd, 0)
-var clusterConfig *raft.ClusterConfig
 const noOfClientThreads int = 10
 const noOfRequestsPerThread int = 10
 
-func init() {
-	var cmdChannel = make(chan *exec.Cmd, 1)
-	serverConfig := []raft.ServerConfig{
-		{1, "localhost", 5001, 6001},
-		{2, "localhost", 5002, 6002},
-		{3, "localhost", 5003, 6003},
-		{4, "localhost", 5004, 6004},
-		{5, "localhost", 5005, 6005}}
-	clusterConfig = &raft.ClusterConfig{"/log", serverConfig}
-
-	data, _ := json.Marshal(*clusterConfig)
-	ioutil.WriteFile("config.json", data, 0644)
-
-	serverReplicas := len((*clusterConfig).Servers)
-	programName := "server.go"
-	index := 1
-	for index <= serverReplicas {
-		constIndex := index
-		go func() {
-			cmd := exec.Command("go", "run", programName, "-id="+strconv.Itoa(constIndex))
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmdChannel <- cmd
-			err := cmd.Run()
-			if err != nil {
-				//log.Println("Server stopped :", constIndex, err.Error())
-			}
-		}()
-		cmdobj := <-cmdChannel
-		cmdObjects = append(cmdObjects, cmdobj)
-		index++
-	}
-	log.Println("Waiting for all server instances to start.........")
-	for len(cmdObjects) < serverReplicas {
-		time.Sleep(100 * time.Millisecond)
-	}
-	waitTimeForServerReplicaStart := 5 * time.Second
-	time.Sleep(waitTimeForServerReplicaStart)
-}
+//func init() {
+//	var cmdChannel = make(chan *exec.Cmd, 1)
+//	serverConfig := []raft.ServerConfig{
+//		{1, "localhost", 5001, 6001},
+//		{2, "localhost", 5002, 6002},
+//		{3, "localhost", 5003, 6003},
+//		{4, "localhost", 5004, 6004},
+//		{5, "localhost", 5005, 6005}}
+//	clusterConfig = &raft.ClusterConfig{"/log", serverConfig}
+//
+//	data, _ := json.Marshal(*clusterConfig)
+//	ioutil.WriteFile("config.json", data, 0644)
+//
+//	serverReplicas := len((*clusterConfig).Servers)
+//	programName := "server.go"
+//	index := 1
+//	for index <= serverReplicas {
+//		constIndex := index
+//		go func() {
+//			cmd := exec.Command("go", "run", programName, "-id="+strconv.Itoa(constIndex))
+//			cmd.Stdout = os.Stdout
+//			cmd.Stderr = os.Stderr
+//			cmdChannel <- cmd
+//			err := cmd.Run()
+//			if err != nil {
+//				//log.Println("Server stopped :", constIndex, err.Error())
+//			}
+//		}()
+//		cmdobj := <-cmdChannel
+//		cmdObjects = append(cmdObjects, cmdobj)
+//		index++
+//	}
+//	log.Println("Waiting for all server instances to start.........")
+//	for len(cmdObjects) < serverReplicas {
+//		time.Sleep(100 * time.Millisecond)
+//	}
+//	waitTimeForServerReplicaStart := 5 * time.Second
+//	time.Sleep(waitTimeForServerReplicaStart)
+//}
 
 /*
 Test for checking the the correct version
 The test execytes multiple set commands and then checks for the correct version on getm execute
 */
+func init(){
+	//start the server goroutines
+	go main()
+	time.Sleep(5*time.Second)
+}
 func TestEntryVersion(t *testing.T) {
-	//start the server
-	//go main()
 
 	commands := []string {
 		"set saurabh 60 7\r\nHoteABC\r\n",
@@ -114,9 +116,7 @@ Test for concurrency
 The test executes multiple commands concurrently 
 */
 func TestConcurrency(t *testing.T) {
-	//start the server
-	//go main()
-
+	
 	commands := []string {
 		"set saurabh 60 7\r\nHoteABC\r\n",
 		"set ganesh 60 2\r\nAA\r\n",
@@ -145,21 +145,21 @@ func TestConcurrency(t *testing.T) {
 	log.Println("TestConcurrency Passed.")
 }
 
-func TestKillServers(t *testing.T) {
-	log.Println("Waiting for all server instances to stop.........")
-	for _, cmd := range cmdObjects {
-		err := cmd.Process.Kill()
-		if err != nil {
-			log.Println("go routine Killing error")
-		}
-		cmd.Process.Wait()
-	}
-	if runtime.GOOS == "windows" {
-		exec.Command("taskkill", "/IM", "server.exe", "/F").Run()
-	} else {
-		exec.Command("pkill", "server").Run()
-	}
-}
+//func TestKillServers(t *testing.T) {
+//	log.Println("Waiting for all server instances to stop.........")
+//	for _, cmd := range cmdObjects {
+//		err := cmd.Process.Kill()
+//		if err != nil {
+//			log.Println("go routine Killing error")
+//		}
+//		cmd.Process.Wait()
+//	}
+//	if runtime.GOOS == "windows" {
+//		exec.Command("taskkill", "/IM", "server.exe", "/F").Run()
+//	} else {
+//		exec.Command("pkill", "server").Run()
+//	}
+//}
 
 //Miscellaneous functions
 func executeCommands(t *testing.T, done chan bool, commands []string, execCount int) bool {

@@ -1,3 +1,10 @@
+
+#NOTE
+The code is not ready for evaluation yet.
+It will be ready for evaluation by Next Monday night ,i.e. 30th March,2014
+
+Thank you Sir, for your patience.
+
 # cs733-raft
 
 This piece of work is an implementation of Raft protocol. The reference paper can be found at https://ramcloud.stanford.edu/raft.pdf
@@ -13,9 +20,9 @@ This piece of work is an implementation of Raft protocol. The reference paper ca
 Ramesh Gaikwad 13305R011
 
 # Instructions: How to run
-1.Obtain a copy of the project using:	go get github.com/swapniel99/cs733-raft
+1.Obtain a copy of the project using:	go get github.com/rameshgkwd05/cs733-raft
 
-2.Change directory to cs733-raft : cd $GOPATH/src/github.com/swapniel99/cs733-raft
+2.Change directory to cs733-raft : cd $GOPATH/src/github.com/rameshgkwd05/cs733-raft
 
 3.Run the test script using following commands: go test
 

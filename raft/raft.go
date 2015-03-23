@@ -2,7 +2,8 @@ package raft
 
 import (
 	"encoding/gob"
-	handler "github.com/swapniel99/cs733-raft/handler"
+	handler "github.com/rameshgkwd05/cs733-raft/handler"
+	types "github.com/rameshgkwd05/cs733-raft/types"
 	"log"
 	"net"
 	"net/rpc"
@@ -13,14 +14,9 @@ import (
 	//	"math"
 )
 
-const (
-	FOLLOWER = iota
-	CANDIDATE
-	LEADER
-)
+type ErrRedirect int // See Log.Append. Implements Error interface.
 
 type Lsn uint64      //Log sequence number, unique for all time.
-type ErrRedirect int // See Log.Append. Implements Error interface.
 type LogEntry interface {
 	Lsn() Lsn
 	Data() []byte
@@ -35,48 +31,37 @@ type SharedLog interface {
 	// and returns without waiting for the result.
 	Append(data []byte) (LogEntry, error)
 }
-
-// --------------------------------------
-// Raft setup
-type ServerConfig struct {
-	Id         int    // Id of server. Must be unique
-	Hostname   string // name or ip of host
-	ClientPort int    // port at which server listens to client messages.
-	LogPort    int    // tcp port for inter-replica protocol messages.
-}
-
-type ClusterConfig struct {
-	Path    string         // Directory for persistent log
-	Servers []ServerConfig // All servers in this cluster
-}
-
 // Raft implements the SharedLog interface.
 type Raft struct {
-	ClusterConfig        *ClusterConfig
+	ClusterConfig        *(types.ClusterConfig)
 	ServerID             int
 	CommitCh             chan LogEntry
 	CommitIndex          Lsn
 	LeaderCommitIndex    Lsn
 	LeaderID             int
-	CurrentState         int                               //state of the server
+	CurrentState         string                               //state of the server
 	AppendRequestChannel chan handler.AppendRequestMessage //channel for receving append requests
 
 	//entries for implementing Shared Log
 	LogEntryBuffer []LogEntry
 	CurrentLsn     Lsn
+	eventCh			chan int
+	sharedMap	   *(types.SharedMaptype)
 }
 
 // Creates a raft object. This implements the SharedLog interface.
 // commitCh is the channel that the kvstore waits on for committed messages.
 // When the process starts, the local disk log is read and all committed
 // entries are recovered and replayed
-func NewRaft(config *ClusterConfig, thisServerId int, commitCh chan LogEntry) (*Raft, error) {
+func NewRaft(config *(types.ClusterConfig), thisServerId int, commitCh chan LogEntry,sharedMapInput *(types.SharedMaptype)) (*Raft, error) {
 	raft := new(Raft)
 	raft.ClusterConfig = config
 	raft.ServerID = thisServerId
 	raft.CommitCh = commitCh
 	raft.AppendRequestChannel = make(chan handler.AppendRequestMessage)
 	raft.LogEntryBuffer = make([]LogEntry, 0)
+	raft.sharedMap = sharedMapInput
+	raft.eventCh = (*sharedMapInput)[thisServerId]
 	return raft, nil
 }
 
@@ -237,7 +222,7 @@ func (raft *Raft) StartServer() {
 	for {
 		message = <-raft.AppendRequestChannel
 
-		if raft.CurrentState != LEADER {
+		if raft.CurrentState != types.LEADER {
 			leaderConfig := raft.ClusterConfig.Servers[0]
 			for _, server := range raft.ClusterConfig.Servers {
 				if server.Id == raft.LeaderID {

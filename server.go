@@ -3,25 +3,29 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"flag"
-	handler "github.com/swapniel99/cs733-raft/handler"
-	raft "github.com/swapniel99/cs733-raft/raft"
+	handler "github.com/rameshgkwd05/cs733-raft/handler"
+	raft "github.com/rameshgkwd05/cs733-raft/raft"
+	types "github.com/rameshgkwd05/cs733-raft/types"
 	"io/ioutil"
 	"log"
+	"sync"
 )
 
 type NullWriter int
+var clusterConfig *types.ClusterConfig
+var sharedMap  types.SharedMaptype //shared map of eventCh identified by server ID
+var wg *sync.WaitGroup
 
 func (NullWriter) Write([]byte) (int, error) {
 	return 0, nil
 }
 
-func ReadConfig(path string) (*raft.ClusterConfig, error) {
+func ReadConfig(path string) (*types.ClusterConfig, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	var conf raft.ClusterConfig
+	var conf types.ClusterConfig
 	err = json.Unmarshal(data, &conf)
 	if err == nil && len(conf.Servers) < 1 {
 		err = errors.New("No Server Configuration found")
@@ -29,7 +33,9 @@ func ReadConfig(path string) (*raft.ClusterConfig, error) {
 	return &conf, err
 }
 
-func main() {
+//start the server Id will be prespecified
+func StartServer(id int) {
+	defer wg.Done()
 	log.SetOutput(new(NullWriter))
 
 	//TODO: Read the config.json file to get all the server configurations
@@ -39,37 +45,33 @@ func main() {
 		return
 	}
 
-	//starting the server
-	serverIdPtr := flag.Int("id", 1, "an int")
-	flag.Parse()
-
-	if err != nil {
-		log.Println("Invalid Server ID provided : ", err.Error())
-	}
-	log.Println("Starting sevrer with ID ", *serverIdPtr)
+	log.Println("Starting server with ID ", id)
 
 	commitCh := make(chan raft.LogEntry, 10000)
-	raftInstance, err := raft.NewRaft(clusterConfig, *serverIdPtr, commitCh)
+	raftInstance, err := raft.NewRaft(clusterConfig, id, commitCh,&sharedMap)
 	if err != nil {
 		log.Println("Error creating server instance : ", err.Error())
 	}
 
-	//First entry in the ClusterConfig will be the default leader
+	
 	var clientPort int
-	leaderConfig := raftInstance.ClusterConfig.Servers[0]
 	for _, server := range raftInstance.ClusterConfig.Servers {
-		raftInstance.LeaderID = leaderConfig.Id
-		if raftInstance.ServerID == leaderConfig.Id {
-			raftInstance.CurrentState = raft.LEADER
-		} else {
-			raftInstance.CurrentState = raft.FOLLOWER
-		}
-
+		
+		//Initially no one will be leader. All servers will start off as follower
+		//raftInstance.LeaderID = types.UnknownLeader
+		//raftInstance.CurrentState =types.FOLLOWER
+	
+		//for testing I am putting server 1 as leader
+		raftInstance.LeaderID = 1
+		raftInstance.CurrentState =types.LEADER
+		
+	
 		//Initialize the connection handler module
 		if server.Id == raftInstance.ServerID {
 			clientPort = server.ClientPort
 		}
 	}
+	
 	if clientPort <= 0 {
 		log.Println("Server's client port not valid")
 	} else {
@@ -83,4 +85,36 @@ func main() {
 	raftInstance.StartServer()
 
 	log.Println("Started raft Instance for server ID ", raftInstance.ServerID)
+}
+
+func main() {
+	serverConfig := []types.ServerConfig{
+		{1, "localhost", 5001, 6001},
+		{2, "localhost", 5002, 6002},
+		{3, "localhost", 5003, 6003},
+		{4, "localhost", 5004, 6004},
+		{5, "localhost", 5005, 6005}}
+	clusterConfig = &types.ClusterConfig{"/log", serverConfig}
+
+	data, _ := json.Marshal(*clusterConfig)
+	ioutil.WriteFile("config.json", data, 0644)
+	
+	serverReplicas := len((*clusterConfig).Servers)
+	
+	//sharedMap will be map of eventCh shared among all server goroutines
+	//mapping will be serverID <-> eventch
+	sharedMap = make(map[int]chan int)
+	
+	wg = new(sync.WaitGroup)
+	//start all 5 server goroutines
+	index := 1
+	for index <= serverReplicas {
+		wg.Add(1)
+		//eventCh
+		sharedMap[index] = make(chan int,1000)
+		go StartServer(index)
+		index++
+	}
+	wg.Wait()
+	
 }
