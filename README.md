@@ -1,7 +1,7 @@
 
 #NOTE
-The code is not ready for evaluation yet.
-It will be ready for evaluation by Next Monday night ,i.e. 30th March,2014
+The code is not ready for evaluation.
+
 
 Thank you Sir, for your patience.
 
