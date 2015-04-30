@@ -1,10 +1,4 @@
 
-#NOTE
-The code is not ready for evaluation.
-
-
-Thank you Sir, for your patience.
-
 # cs733-raft
 
 This piece of work is an implementation of Raft protocol. The reference paper can be found at https://ramcloud.stanford.edu/raft.pdf
