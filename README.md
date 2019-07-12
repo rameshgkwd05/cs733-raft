@@ -1,7 +1,7 @@
 
 # cs733-raft
 
-This piece of work is an implementation of Raft protocol. The reference paper can be found at https://ramcloud.stanford.edu/raft.pdf
+This piece of work is an implementation of Raft protocol. The reference paper can be found at https://raft.github.io/raft.pdf
 
 # Features
 * The code is divided into three different modules namely the Connection_Handler, the SharedLog and the KVStore.
